@@ -4,7 +4,7 @@ import { createApp } from './app';
   return this.toString();
 };
 import { prisma } from './database/prisma';
-import { seedAdmin } from '../prisma/seed';
+import { seedAdmin } from './database/seed';
 import { cleanupExpiredTokens } from './shared/utils/content-token';
 import { env } from './config/env';
 import { logger } from './config/logger';

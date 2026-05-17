@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+enum ContentType {
+  VIDEO
+  PDF
+  IMAGE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         Role     @default(STUDENT)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  refreshTokens       RefreshToken[]
+  enrollments         Enrollment[]
+  contentAccessTokens ContentAccessToken[]
+  contentAccessLogs   ContentAccessLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  title        String
+  description  String   @default("")
+  slug         String   @unique
+  thumbnailUrl String?  @map("thumbnail_url")
+  price        Float    @default(0)
+  isActive     Boolean  @default(true) @map("is_active")
+  isPublished  Boolean  @default(false) @map("is_published")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  sections    Section[]
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+model Section {
+  id        String   @id @default(uuid())
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  courseId   String   @map("course_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+
+  @@index([courseId])
+  @@map("sections")
+}
+
+model ContentItem {
+  id           String      @id @default(uuid())
+  title        String
+  type         ContentType
+  originalName String      @map("original_name")
+  filePath     String      @map("file_path")
+  mimeType     String      @map("mime_type")
+  fileSize     BigInt      @map("file_size")
+  sortOrder    Int         @default(0) @map("sort_order")
+  sectionId    String      @map("section_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  section            Section              @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  contentAccessTokens ContentAccessToken[]
+  contentAccessLogs   ContentAccessLog[]
+
+  @@index([sectionId])
+  @@map("content_items")
+}
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  courseId    String   @map("course_id")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model ContentAccessToken {
+  id            String   @id @default(uuid())
+  token         String   @unique
+  contentItemId String   @map("content_item_id")
+  userId        String   @map("user_id")
+  expiresAt     DateTime @map("expires_at")
+  used          Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([contentItemId])
+  @@index([userId])
+  @@map("content_access_tokens")
+}
+
+model ContentAccessLog {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  contentItemId String   @map("content_item_id")
+  ipAddress     String   @map("ip_address")
+  userAgent     String   @default("") @map("user_agent")
+  accessedAt    DateTime @default(now()) @map("accessed_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([contentItemId])
+  @@index([accessedAt])
+  @@map("content_access_logs")
+}

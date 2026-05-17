@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Course } from '../../services/courseService';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, Image as ImageIcon } from 'lucide-react';
 
 interface CourseFormProps {
   course?: Course | null;

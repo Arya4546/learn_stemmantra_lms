@@ -13,8 +13,7 @@ import {
   Edit2,
   ArrowUpDown,
   BookOpen,
-  CheckCircle2,
-  XCircle
+  CheckCircle2
 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';

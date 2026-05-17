@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Video, FileText, GripVertical, Save, X, Upload, Layout } from 'lucide-react';
+import { Plus, Trash2, Video, FileText, GripVertical, Upload, Layout } from 'lucide-react';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 

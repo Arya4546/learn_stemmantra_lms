@@ -11,6 +11,9 @@ export interface Course {
   createdAt: string;
   updatedAt: string;
   sections?: Section[];
+  _count?: {
+    sections: number;
+  };
 }
 
 export interface Section {

@@ -3,7 +3,7 @@ import * as dashboardService from './dashboard.service';
 import { sendSuccess } from '../../shared/utils/response';
 import { HttpStatus } from '../../shared/errors/app-error';
 
-export async function getAdminDashboard(req: Request, res: Response): Promise<void> {
+export async function getAdminDashboard(_req: Request, res: Response): Promise<void> {
   const data = await dashboardService.getAdminStats();
   sendSuccess(res, HttpStatus.OK, 'Admin dashboard data retrieved', data);
 }

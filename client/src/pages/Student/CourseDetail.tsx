@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { courseService, Course, Section, Content } from '../../services/courseService';
+import { courseService, Course } from '../../services/courseService';
 import { PlayCircle, FileText, Image as ImageIcon, ChevronLeft, Clock, BookOpen, ShieldCheck, Users } from 'lucide-react';
 
 export function CourseDetail() {

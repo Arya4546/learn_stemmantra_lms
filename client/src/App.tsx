@@ -33,9 +33,6 @@ import { AdminDashboard } from './pages/Admin/AdminDashboard';
 import { AdminCourseList } from './pages/Admin/AdminCourseList';
 import { AdminStudentList } from './pages/Admin/AdminStudentList';
 
-import { EmptyState } from './components/ui/EmptyState';
-import { BookOpen, Users as UsersIcon } from 'lucide-react';
-
 import { StudentDashboard } from './pages/Student/StudentDashboard';
 
 import { Toaster } from 'react-hot-toast';

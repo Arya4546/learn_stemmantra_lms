@@ -36,8 +36,18 @@ export function setSecurityHeaders(res: Response, mimeType: string): void {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('Content-Security-Policy', "default-src 'none'");
+
+  // Allow designated front-end origins to frame the content
+  const allowedOriginsString = ALLOWED_ORIGINS.join(' ');
+
+  // Modern browsers respect frame-ancestors inside Content-Security-Policy.
+  // We allow 'self' and our defined CORS origins to load this content in a frame.
+  // We also relax default-src slightly so Chrome's/Firefox's built-in PDF viewers can load internal styles/scripts.
+  res.setHeader(
+    'Content-Security-Policy',
+    `frame-ancestors 'self' ${allowedOriginsString}; default-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'self' blob:;`
+  );
+
   res.setHeader('X-Download-Options', 'noopen');
   res.setHeader('Content-Type', mimeType);
 }

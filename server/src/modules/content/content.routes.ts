@@ -32,21 +32,12 @@ const storage = multer.diskStorage({
   },
 });
 
-const ALLOWED_MIMES = [
-  'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
-  'application/pdf',
-  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
-];
-
 const upload = multer({
   storage,
   limits: { fileSize: env.MAX_FILE_SIZE },
-  fileFilter: (_req, file, cb) => {
-    if (ALLOWED_MIMES.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`File type '${file.mimetype}' is not allowed`));
-    }
+  fileFilter: (_req, _file, cb) => {
+    // Allow all file types as requested (Word, Excel, PowerPoint, Text, CSV, Zip, etc.)
+    cb(null, true);
   },
 });
 
@@ -61,6 +52,14 @@ router.post(
   validate(uploadContentParamsSchema, 'params'),
   upload.single('file'),
   asyncHandler(contentController.uploadContent),
+);
+
+// Admin: Create non-file content (QUIZ/ASSESSMENT) in a section
+router.post(
+  '/sections/:sectionId/content-item',
+  authenticate,
+  authorize(Role.ADMIN),
+  asyncHandler(contentController.createNonFileContent),
 );
 
 // Authenticated: List content items for a section

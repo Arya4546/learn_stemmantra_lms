@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/app-error';
-import { removeDirectory } from '../../shared/utils/file-cleanup';
+import { removeDirectory, removeFile } from '../../shared/utils/file-cleanup';
 import { env } from '../../config/env';
 import path from 'path';
 import type { CreateCourseInput, UpdateCourseInput } from './course.validators';
@@ -154,6 +154,36 @@ export async function deleteCourse(courseId: string) {
 
   if (!course) {
     throw AppError.notFound('Course');
+  }
+
+  // Delete all submitted worksheets for any assessments in this course
+  const assessmentContentItems = course.sections
+    .flatMap(s => s.contentItems)
+    .filter(item => item.type === 'ASSESSMENT');
+
+  for (const item of assessmentContentItems) {
+    const answers = await prisma.assessmentAnswer.findMany({
+      where: {
+        attempt: {
+          assessment: {
+            contentItemId: item.id,
+          },
+        },
+        fileUrl: { not: null },
+      },
+      select: { fileUrl: true },
+    });
+
+    for (const answer of answers) {
+      if (answer.fileUrl) {
+        const parts = answer.fileUrl.split('/');
+        const fileName = parts[parts.length - 1];
+        if (fileName) {
+          const filePath = path.join(env.UPLOAD_DIR, 'worksheets', fileName);
+          await removeFile(filePath);
+        }
+      }
+    }
   }
 
   await prisma.course.delete({ where: { id: courseId } });

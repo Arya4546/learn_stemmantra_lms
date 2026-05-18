@@ -77,7 +77,7 @@ export function AdminLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40 shadow-premium">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 shadow-premium">
           <div className="flex items-center gap-4 flex-1">
             <button 
               className="lg:hidden p-2 text-text-secondary hover:bg-surface rounded-lg"

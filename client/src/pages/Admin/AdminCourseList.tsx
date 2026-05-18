@@ -12,12 +12,18 @@ import {
   BookOpen,
   Layout,
   Calendar,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Video,
+  FileText,
+  HelpCircle,
+  Award
 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CourseForm } from './CourseForm';
 import { CourseContentEditor } from './CourseContentEditor';
+import { ContentPreviewModal } from '../../components/security/ContentPreviewModal';
 import toast from 'react-hot-toast';
 
 export function AdminCourseList() {
@@ -33,7 +39,17 @@ export function AdminCourseList() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [viewingCourse, setViewingCourse] = useState<Course | null>(null);
   const [managingCourseId, setManagingCourseId] = useState<string | null>(null);
+  const [previewContentId, setPreviewContentId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Confirm Dialog state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isDestructive?: boolean;
+  } | null>(null);
 
   const fetchCourses = async () => {
     setIsLoading(true);
@@ -47,21 +63,39 @@ export function AdminCourseList() {
     }
   };
 
+  const handleViewCourse = async (courseId: string) => {
+    const loadingToast = toast.loading('Fetching course details...');
+    try {
+      const response = await courseService.getById(courseId);
+      setViewingCourse(response.data.data);
+      setIsPreviewOpen(true);
+      toast.dismiss(loadingToast);
+    } catch (err) {
+      toast.error('Failed to load course details', { id: loadingToast });
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      const loadingToast = toast.loading('Deleting course...');
-      try {
-        await courseService.delete(id);
-        setCourses(courses.filter(c => c.id !== id));
-        toast.success('Course deleted successfully', { id: loadingToast });
-      } catch (err) {
-        toast.error('Failed to delete course', { id: loadingToast });
+  const handleDelete = (id: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Course',
+      message: 'Are you sure you want to delete this course? This will permanently erase the course curriculum, quizzes, assessments, and all associated media files. This action cannot be undone.',
+      isDestructive: true,
+      onConfirm: async () => {
+        const loadingToast = toast.loading('Deleting course...');
+        try {
+          await courseService.delete(id);
+          setCourses(courses.filter(c => c.id !== id));
+          toast.success('Course deleted successfully', { id: loadingToast });
+        } catch (err) {
+          toast.error('Failed to delete course', { id: loadingToast });
+        }
       }
-    }
+    });
   };
 
   const toggleStatus = async (course: Course) => {
@@ -267,10 +301,7 @@ export function AdminCourseList() {
                           <Layout size={18} />
                         </button>
                         <button
-                          onClick={() => {
-                            setViewingCourse(course);
-                            setIsPreviewOpen(true);
-                          }}
+                          onClick={() => handleViewCourse(course.id)}
                           className="p-2 text-text-secondary hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                           title="View"
                         >
@@ -365,9 +396,77 @@ export function AdminCourseList() {
               </div>
               <div>
                 <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Modules</p>
-                <p className="text-sm font-bold text-text-primary mt-1">{viewingCourse._count?.sections || 0} modules synced</p>
+                <p className="text-sm font-bold text-text-primary mt-1">{viewingCourse.sections?.length || 0} modules synced</p>
               </div>
             </div>
+
+            {/* Curriculum/Sections Preview */}
+            <div className="space-y-4 pt-6 border-t border-border">
+              <div className="flex items-center gap-2">
+                <Layout size={18} className="text-primary" />
+                <h5 className="text-lg font-black text-text-primary tracking-tight">Curriculum Preview</h5>
+              </div>
+              {(!viewingCourse.sections || viewingCourse.sections.length === 0) ? (
+                <p className="text-xs text-text-secondary italic">No sections or curriculum content created yet.</p>
+              ) : (
+                <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {viewingCourse.sections.map((section, idx) => (
+                    <div key={section.id} className="bg-surface/50 border border-border/60 rounded-2xl overflow-hidden">
+                      <div className="bg-surface px-4 py-2.5 flex items-center justify-between border-b border-border">
+                        <span className="font-bold text-xs text-text-primary">
+                          Section {idx + 1}: {section.title}
+                        </span>
+                        <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">
+                          {section.contentItems?.length || 0} items
+                        </span>
+                      </div>
+                      <div className="p-3 space-y-1.5 bg-white">
+                        {(!section.contentItems || section.contentItems.length === 0) ? (
+                          <p className="text-[11px] text-text-secondary italic px-2">No content items in this section.</p>
+                        ) : (
+                          section.contentItems.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-2.5 bg-surface/30 rounded-xl border border-border/40 hover:border-primary/30 transition-all">
+                              <div className="flex items-center gap-2">
+                                {item.type === 'VIDEO' && (
+                                  <Video size={14} className="text-blue-500" />
+                                )}
+                                {(item.type === 'PDF' || item.type === 'DOCUMENT' || item.type === 'IMAGE') && (
+                                  <FileText size={14} className="text-orange-500" />
+                                )}
+                                {item.type === 'QUIZ' && (
+                                  <HelpCircle size={14} className="text-indigo-500" />
+                                )}
+                                {item.type === 'ASSESSMENT' && (
+                                  <Award size={14} className="text-rose-500" />
+                                )}
+                                <span className="text-xs font-bold text-text-primary">{item.title}</span>
+                              </div>
+                              {item.type === 'QUIZ' ? (
+                                <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[9px] font-black uppercase rounded-lg">
+                                  Quiz
+                                </span>
+                              ) : item.type === 'ASSESSMENT' ? (
+                                <span className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-700 text-[9px] font-black uppercase rounded-lg">
+                                  Exam
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => setPreviewContentId(item.id)}
+                                  className="px-3 py-1 bg-primary text-white text-[10px] font-black rounded-lg hover:bg-primary-hover transition-all shadow-sm"
+                                >
+                                  Preview
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => setIsPreviewOpen(false)}
               className="w-full py-4 bg-primary text-white rounded-2xl font-black hover:bg-primary-hover transition-all shadow-lg shadow-primary/20"
@@ -377,6 +476,29 @@ export function AdminCourseList() {
           </div>
         )}
       </Modal>
+
+      {previewContentId && (
+        <ContentPreviewModal
+          isOpen={!!previewContentId}
+          onClose={() => setPreviewContentId(null)}
+          contentId={previewContentId}
+        />
+      )}
+
+      {/* Custom Confirm Dialog */}
+      {confirmConfig && (
+        <ConfirmDialog
+          isOpen={confirmConfig.isOpen}
+          onClose={() => setConfirmConfig(null)}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          isDestructive={confirmConfig.isDestructive}
+        />
+      )}
     </div>
   );
 }

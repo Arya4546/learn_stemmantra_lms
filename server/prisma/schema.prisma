@@ -16,6 +16,9 @@ enum ContentType {
   VIDEO
   PDF
   IMAGE
+  DOCUMENT
+  QUIZ
+  ASSESSMENT
 }
 
 model User {
@@ -32,6 +35,8 @@ model User {
   enrollments         Enrollment[]
   contentAccessTokens ContentAccessToken[]
   contentAccessLogs   ContentAccessLog[]
+  quizAttempts        QuizAttempt[]
+  assessmentAttempts  AssessmentAttempt[]
 
   @@map("users")
 }
@@ -88,10 +93,10 @@ model ContentItem {
   id           String      @id @default(uuid())
   title        String
   type         ContentType
-  originalName String      @map("original_name")
-  filePath     String      @map("file_path")
-  mimeType     String      @map("mime_type")
-  fileSize     BigInt      @map("file_size")
+  originalName String?     @map("original_name")
+  filePath     String?     @map("file_path")
+  mimeType     String?     @map("mime_type")
+  fileSize     BigInt?     @map("file_size")
   sortOrder    Int         @default(0) @map("sort_order")
   sectionId    String      @map("section_id")
   createdAt    DateTime    @default(now()) @map("created_at")
@@ -100,6 +105,9 @@ model ContentItem {
   section            Section              @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   contentAccessTokens ContentAccessToken[]
   contentAccessLogs   ContentAccessLog[]
+  
+  quiz               Quiz?
+  assessment         Assessment?
 
   @@index([sectionId])
   @@map("content_items")
@@ -153,4 +161,139 @@ model ContentAccessLog {
   @@index([contentItemId])
   @@index([accessedAt])
   @@map("content_access_logs")
+}
+
+// ----------------------------------------------------
+// QUIZ (Basic Quiz Models)
+// ----------------------------------------------------
+model Quiz {
+  id             String         @id @default(uuid())
+  contentItemId  String         @unique @map("content_item_id")
+  passingScore   Float          @default(60.0) // percentage
+  allowedAttempts Int           @default(0)    // 0 = unlimited
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  contentItem    ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  questions      QuizQuestion[]
+  attempts       QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id                 String   @id @default(uuid())
+  quizId             String   @map("quiz_id")
+  questionText       String   @map("question_text")
+  options            String[] // Choice array for MCQs
+  correctOptionIndex Int      @map("correct_option_index")
+  explanation        String?
+  points             Int      @default(1)
+  sortOrder          Int      @default(0) @map("sort_order")
+
+  quiz               Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id          String    @id @default(uuid())
+  quizId      String    @map("quiz_id")
+  userId      String    @map("user_id")
+  score       Float     // Percentage obtained
+  isPassed    Boolean   @map("is_passed")
+  answers     Json      // Map of { questionId: selectedIndex }
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_attempts")
+}
+
+// ----------------------------------------------------
+// ASSESSMENT (Formal Proctored Exams)
+// ----------------------------------------------------
+model Assessment {
+  id                    String               @id @default(uuid())
+  contentItemId         String               @unique @map("content_item_id")
+  durationMinutes       Int                  @map("duration_minutes") // e.g. 60 minutes
+  totalPoints           Int                  @default(100) @map("total_points")
+  passingScore          Float                @default(50.0) @map("passing_score") // e.g. 50 points
+  allowedAttempts       Int                  @default(1) @map("allowed_attempts")  // Usually 1
+  isProctored           Boolean              @default(true) @map("is_proctored")
+  showResultImmediately Boolean              @default(false) @map("show_result_immediately")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  contentItem           ContentItem          @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  questions             AssessmentQuestion[]
+  attempts              AssessmentAttempt[]
+
+  @@map("assessments")
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+  FILE_UPLOAD
+}
+
+model AssessmentQuestion {
+  id                 String             @id @default(uuid())
+  assessmentId       String             @map("assessment_id")
+  questionText       String             @map("question_text")
+  type               QuestionType
+  options            String[]           // Used for MCQ
+  correctOptionIndex Int?               @map("correct_option_index") // For autograded MCQ/TF
+  explanation        String?
+  points             Int                @default(5)
+  sortOrder          Int                @default(0) @map("sort_order")
+
+  assessment         Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  answers            AssessmentAnswer[]
+
+  @@map("assessment_questions")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+model AssessmentAttempt {
+  id          String         @id @default(uuid())
+  assessmentId String        @map("assessment_id")
+  userId      String         @map("user_id")
+  status      AttemptStatus  @default(IN_PROGRESS)
+  blurCount   Int            @default(0) @map("blur_count") // Tracks focus loss (tab changes)
+  score       Float?         // Nullable until graded (for short answer / files)
+  isPassed    Boolean?       @map("is_passed")
+  feedback    String?        // Admin/teacher comments
+  startedAt   DateTime       @default(now()) @map("started_at")
+  completedAt DateTime?      @map("completed_at")
+
+  assessment  Assessment     @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers     AssessmentAnswer[]
+
+  @@map("assessment_attempts")
+}
+
+model AssessmentAnswer {
+  id                 String             @id @default(uuid())
+  attemptId          String             @map("attempt_id")
+  questionId         String             @map("question_id")
+  selectedOptionIndex Int?              @map("selected_option_index") // MCQ/TF
+  textResponse       String?            @map("text_response")         // ShortAnswer
+  fileUrl            String?            @map("file_url")              // FileUpload (PDFs/Written work)
+  pointsAwarded      Int?               @map("points_awarded")        // Teacher graded
+  isCorrect          Boolean?           @map("is_correct")            // Autograded or teacher marked
+
+  attempt            AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question           AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_answers")
 }

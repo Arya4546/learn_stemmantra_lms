@@ -13,6 +13,8 @@ import { sectionRoutes } from './modules/sections/section.routes';
 import { contentRoutes } from './modules/content/content.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { enrollmentRoutes } from './modules/enrollments/enrollment.routes';
+import { quizRoutes } from './modules/quizzes/quiz.routes';
+import { assessmentRoutes } from './modules/assessments/assessment.routes';
 
 export function createApp(): express.Application {
   const app = express();
@@ -41,6 +43,8 @@ export function createApp(): express.Application {
   app.use('/api/courses/:courseId/sections', sectionRoutes);
   app.use('/api', contentRoutes);
   app.use('/api/enrollments', enrollmentRoutes);
+  app.use('/api/quizzes', quizRoutes);
+  app.use('/api/assessments', assessmentRoutes);
 
   // Health check
   app.get('/api/health', (_req, res) => {

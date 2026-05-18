@@ -7,33 +7,28 @@ import { ensureDirectory, moveFile, removeFile } from '../../shared/utils/file-c
 import { generateContentAccessToken } from '../../shared/utils/content-token';
 import { logger } from '../../config/logger';
 
-const MIME_TYPE_MAP: Record<string, ContentType> = {
-  'video/mp4': ContentType.VIDEO,
-  'video/webm': ContentType.VIDEO,
-  'video/ogg': ContentType.VIDEO,
-  'video/quicktime': ContentType.VIDEO,
-  'application/pdf': ContentType.PDF,
-  'image/jpeg': ContentType.IMAGE,
-  'image/png': ContentType.IMAGE,
-  'image/webp': ContentType.IMAGE,
-  'image/gif': ContentType.IMAGE,
-  'image/svg+xml': ContentType.IMAGE,
-};
-
 const CONTENT_TYPE_DIRS: Record<ContentType, string> = {
   [ContentType.VIDEO]: 'videos',
   [ContentType.PDF]: 'pdfs',
   [ContentType.IMAGE]: 'images',
+  [ContentType.DOCUMENT]: 'documents',
+  [ContentType.QUIZ]: 'quizzes',
+  [ContentType.ASSESSMENT]: 'assessments',
 };
 
 function resolveContentType(mimeType: string): ContentType {
-  const contentType = MIME_TYPE_MAP[mimeType];
-  if (!contentType) {
-    throw AppError.badRequest(
-      `Unsupported file type: ${mimeType}. Allowed: ${Object.keys(MIME_TYPE_MAP).join(', ')}`,
-    );
+  const mimeLower = mimeType.toLowerCase();
+  if (mimeLower.startsWith('video/')) {
+    return ContentType.VIDEO;
   }
-  return contentType;
+  if (mimeLower.startsWith('image/')) {
+    return ContentType.IMAGE;
+  }
+  if (mimeLower === 'application/pdf') {
+    return ContentType.PDF;
+  }
+  // Word (.docx, .doc), Excel (.xlsx, .xls), PowerPoint (.pptx, .ppt), Text (.txt), CSV (.csv), Zip, etc.
+  return ContentType.DOCUMENT;
 }
 
 function getFileExtension(originalName: string): string {
@@ -105,7 +100,41 @@ export async function uploadContent(
     throw error;
   }
 }
+export async function createNonFileContentItem(
+  sectionId: string,
+  title: string,
+  type: ContentType,
+) {
+  const section = await prisma.section.findUnique({
+    where: { id: sectionId },
+  });
 
+  if (!section) {
+    throw AppError.notFound('Section not found');
+  }
+
+  if (type !== ContentType.QUIZ && type !== ContentType.ASSESSMENT) {
+    throw AppError.badRequest('Only QUIZ or ASSESSMENT content items can be created without a file.');
+  }
+
+  // Find max sort order in this section
+  const maxItem = await prisma.contentItem.findFirst({
+    where: { sectionId },
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true },
+  });
+
+  const nextSortOrder = maxItem ? maxItem.sortOrder + 1 : 0;
+
+  return prisma.contentItem.create({
+    data: {
+      title,
+      type,
+      sortOrder: nextSortOrder,
+      sectionId,
+    },
+  });
+}
 export async function listContentItems(sectionId: string) {
   const section = await prisma.section.findUnique({ where: { id: sectionId } });
   if (!section) {
@@ -135,6 +164,32 @@ export async function deleteContentItem(contentItemId: string) {
 
   if (!contentItem) {
     throw AppError.notFound('Content item');
+  }
+
+  // Delete all submitted worksheets if this is an ASSESSMENT type
+  if (contentItem.type === ContentType.ASSESSMENT) {
+    const answers = await prisma.assessmentAnswer.findMany({
+      where: {
+        attempt: {
+          assessment: {
+            contentItemId: contentItemId,
+          },
+        },
+        fileUrl: { not: null },
+      },
+      select: { fileUrl: true },
+    });
+
+    for (const answer of answers) {
+      if (answer.fileUrl) {
+        const parts = answer.fileUrl.split('/');
+        const fileName = parts[parts.length - 1];
+        if (fileName) {
+          const filePath = path.join(env.UPLOAD_DIR, 'worksheets', fileName);
+          await removeFile(filePath);
+        }
+      }
+    }
   }
 
   await prisma.contentItem.delete({ where: { id: contentItemId } });

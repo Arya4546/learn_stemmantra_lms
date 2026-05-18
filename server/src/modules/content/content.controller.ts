@@ -21,7 +21,24 @@ export async function uploadContent(req: Request, res: Response): Promise<void> 
     title: contentItem.title,
     type: contentItem.type,
     mimeType: contentItem.mimeType,
-    fileSize: contentItem.fileSize.toString(),
+    fileSize: contentItem.fileSize ? contentItem.fileSize.toString() : '0',
+  });
+}
+
+export async function createNonFileContent(req: Request, res: Response): Promise<void> {
+  const sectionId = String(req.params.sectionId);
+  const { title, type } = req.body as { title: string; type: any };
+
+  if (!title || !type) {
+    throw AppError.badRequest('Title and content type are required');
+  }
+
+  const contentItem = await contentService.createNonFileContentItem(sectionId, title, type);
+
+  sendSuccess(res, HttpStatus.CREATED, 'Content item created', {
+    id: contentItem.id,
+    title: contentItem.title,
+    type: contentItem.type,
   });
 }
 
@@ -30,7 +47,7 @@ export async function listContent(req: Request, res: Response): Promise<void> {
 
   const serialized = items.map((item) => ({
     ...item,
-    fileSize: item.fileSize.toString(),
+    fileSize: item.fileSize ? item.fileSize.toString() : '0',
   }));
 
   sendSuccess(res, HttpStatus.OK, 'Content items retrieved', serialized);
@@ -68,6 +85,10 @@ export async function serveContent(req: Request, res: Response): Promise<void> {
   );
 
   const { mimeType, filePath } = tokenData;
+
+  if (!mimeType || !filePath) {
+    throw AppError.badRequest('This content item does not have an associated file to serve.');
+  }
 
   if (mimeType.startsWith('video/')) {
     streamVideo(req, res, filePath, mimeType);

@@ -7,8 +7,8 @@ import { logger } from '../../config/logger';
 interface ContentTokenData {
   contentItemId: string;
   userId: string;
-  filePath: string;
-  mimeType: string;
+  filePath: string | null;
+  mimeType: string | null;
 }
 
 export async function generateContentAccessToken(

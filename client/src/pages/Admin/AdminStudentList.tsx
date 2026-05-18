@@ -19,6 +19,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { StudentForm } from './StudentForm';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 export function AdminStudentList() {
   const [students, setStudents] = useState<User[]>([]);
@@ -36,6 +37,15 @@ export function AdminStudentList() {
   const [enrollingStudent, setEnrollingStudent] = useState<User | null>(null);
   const [studentEnrollments, setStudentEnrollments] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Confirm Dialog state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isDestructive?: boolean;
+  } | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -68,17 +78,23 @@ export function AdminStudentList() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to remove this student? This action cannot be undone.')) {
-      const loadingToast = toast.loading('Removing student...');
-      try {
-        await userService.updateUser(id, { isActive: false }); 
-        setStudents(students.filter(s => s.id !== id));
-        toast.success('Student removed', { id: loadingToast });
-      } catch (err) {
-        toast.error('Failed to remove student', { id: loadingToast });
+  const handleDelete = (id: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Remove Student',
+      message: 'Are you sure you want to remove this student? This action cannot be undone.',
+      isDestructive: true,
+      onConfirm: async () => {
+        const loadingToast = toast.loading('Removing student...');
+        try {
+          await userService.updateUser(id, { isActive: false }); 
+          setStudents(students.filter(s => s.id !== id));
+          toast.success('Student removed', { id: loadingToast });
+        } catch (err) {
+          toast.error('Failed to remove student', { id: loadingToast });
+        }
       }
-    }
+    });
   };
 
   const handleEnrollmentToggle = async (courseId: string) => {
@@ -429,6 +445,21 @@ export function AdminStudentList() {
           </div>
         )}
       </Modal>
+
+      {/* Custom Confirm Dialog */}
+      {confirmConfig && (
+        <ConfirmDialog
+          isOpen={confirmConfig.isOpen}
+          onClose={() => setConfirmConfig(null)}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          isDestructive={confirmConfig.isDestructive}
+        />
+      )}
     </div>
   );
 }

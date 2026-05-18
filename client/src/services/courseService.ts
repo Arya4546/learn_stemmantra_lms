@@ -26,7 +26,7 @@ export interface Section {
 export interface Content {
   id: string;
   title: string;
-  type: 'VIDEO' | 'PDF' | 'IMAGE';
+  type: 'VIDEO' | 'PDF' | 'IMAGE' | 'DOCUMENT' | 'QUIZ' | 'ASSESSMENT';
   url: string;
   mimeType: string;
   fileSize: string;

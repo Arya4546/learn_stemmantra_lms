@@ -10,10 +10,15 @@ import {
   updateUserSchema,
   userIdParamSchema,
   paginationQuerySchema,
+  updateMeSchema,
 } from './user.validators';
 
 const router = Router();
 
+// Non-admin route for profile / password updates
+router.patch('/me', authenticate, validate(updateMeSchema), asyncHandler(userController.updateMe));
+
+// Admin-only middleware and routes
 router.use(authenticate, authorize(Role.ADMIN));
 
 router.post('/', validate(createUserSchema), asyncHandler(userController.createStudent));

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { courseService, Course } from '../../services/courseService';
-import { PlayCircle, FileText, Image as ImageIcon, ChevronLeft, Clock, BookOpen, ShieldCheck, Users } from 'lucide-react';
+import { PlayCircle, FileText, Image as ImageIcon, ChevronLeft, Clock, BookOpen, ShieldCheck, Users, HelpCircle, Award } from 'lucide-react';
 
 export function CourseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -46,9 +46,11 @@ export function CourseDetail() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'VIDEO': return <PlayCircle size={18} className="text-blue-500" />;
-      case 'PDF': return <FileText size={18} className="text-red-500" />;
+      case 'PDF': return <FileText size={18} className="text-orange-500" />;
       case 'IMAGE': return <ImageIcon size={18} className="text-green-500" />;
-      default: return <FileText size={18} className="text-gray-400" />;
+      case 'QUIZ': return <HelpCircle size={18} className="text-indigo-500" />;
+      case 'ASSESSMENT': return <Award size={18} className="text-rose-500" />;
+      default: return <FileText size={18} className="text-slate-400" />;
     }
   };
 
@@ -128,33 +130,60 @@ export function CourseDetail() {
                 {(!section.contentItems || section.contentItems.length === 0) ? (
                   <div className="px-8 py-6 text-sm text-text-secondary font-medium italic bg-surface/20">No content in this section.</div>
                 ) : (
-                  section.contentItems.map((content) => (
-                    <Link
-                      key={content.id}
-                      to={`/student/content/${content.id}`}
-                      className="flex items-center justify-between px-8 py-5 hover:bg-primary/5 transition-all group"
-                    >
-                      <div className="flex items-center gap-5">
-                        <div className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center shadow-sm group-hover:border-primary group-hover:bg-white group-hover:shadow-premium transition-all">
-                          {getIcon(content.type)}
+                  section.contentItems.map((content) => {
+                    const getLabels = (type: string) => {
+                      switch (type) {
+                        case 'VIDEO':
+                          return { subtitle: 'Video Lecture', action: 'Watch Lecture', badgeBg: 'bg-blue-50 border-blue-100 text-blue-700' };
+                        case 'PDF':
+                        case 'DOCUMENT':
+                          return { subtitle: 'Reading Worksheet', action: 'Review document', badgeBg: 'bg-orange-50 border-orange-100 text-orange-700' };
+                        case 'IMAGE':
+                          return { subtitle: 'Concept Diagram', action: 'Inspect Diagram', badgeBg: 'bg-green-50 border-green-100 text-green-700' };
+                        case 'QUIZ':
+                          return { subtitle: 'Practice Quiz Checkpoint', action: 'Begin Quiz', badgeBg: 'bg-indigo-50 border-indigo-100 text-indigo-700' };
+                        case 'ASSESSMENT':
+                          return { subtitle: 'Secure Graded Assessment', action: 'Start Exam', badgeBg: 'bg-rose-50 border-rose-100 text-rose-700' };
+                        default:
+                          return { subtitle: 'Learning Resource', action: 'Open Lesson', badgeBg: 'bg-slate-50 border-slate-100 text-slate-700' };
+                      }
+                    };
+
+                    const { subtitle, action, badgeBg } = getLabels(content.type);
+
+                    return (
+                      <Link
+                        key={content.id}
+                        to={`/student/content/${content.id}`}
+                        className="flex items-center justify-between px-8 py-5 hover:bg-primary/5 transition-all group"
+                      >
+                        <div className="flex items-center gap-5">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center shadow-sm group-hover:border-primary group-hover:bg-white group-hover:shadow-premium transition-all">
+                            {getIcon(content.type)}
+                          </div>
+                          <div>
+                            <span className="text-base font-bold text-text-primary group-hover:text-primary transition-colors block">
+                              {content.title}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`px-2 py-0.5 border text-[9px] font-black uppercase rounded-md tracking-wider ${badgeBg}`}>
+                                {content.type}
+                              </span>
+                              <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
+                                {subtitle}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-base font-bold text-text-primary group-hover:text-primary transition-colors block">
-                            {content.title}
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                          <span className="text-xs font-black text-primary uppercase tracking-widest">
+                            {action}
                           </span>
-                          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-                            {content.type} Lesson
-                          </span>
+                          <PlayCircle size={16} className="text-primary" />
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                        <span className="text-xs font-black text-primary uppercase tracking-widest">
-                          Start
-                        </span>
-                        <PlayCircle size={16} className="text-primary" />
-                      </div>
-                    </Link>
-                  ))
+                      </Link>
+                    );
+                  })
                 )}
               </div>
             </div>

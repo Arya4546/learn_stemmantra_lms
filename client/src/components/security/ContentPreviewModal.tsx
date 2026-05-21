@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, PlayCircle, FileText, ShieldAlert } from 'lucide-react';
+import { X, PlayCircle, FileText, ShieldAlert, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Minimize2, Lock } from 'lucide-react';
 import { api } from '../../services/api';
 import { VideoPlayer } from './VideoPlayer';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
 
 interface ContentPreviewModalProps {
   isOpen: boolean;
@@ -19,6 +20,13 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Enhanced features state
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Esc key closure
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -27,11 +35,51 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Secure shortcuts block (Ctrl+P, Ctrl+S, Ctrl+C)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const preventShortcuts = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdOrCtrl) {
+        if (e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          toast.error('Printing is disabled in Secure Preview Mode.', { id: 'sec-print' });
+        }
+        if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          toast.error('Saving local copies is disabled in Secure Preview Mode.', { id: 'sec-save' });
+        }
+        if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault();
+          toast.error('Copying is restricted in Secure Preview Mode.', { id: 'sec-copy' });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', preventShortcuts);
+    return () => window.removeEventListener('keydown', preventShortcuts);
+  }, [isOpen]);
+
+  // Fetch token and metadata
   useEffect(() => {
     if (!isOpen || !contentId) {
       setContentData(null);
       setTokenUrl(null);
       setError('');
+      setZoom(1);
+      setRotation(0);
       return;
     }
 
@@ -39,13 +87,10 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
       try {
         setIsLoading(true);
         setError('');
-        // Request one-time access token
         const response = await api.post(`/content/${contentId}/access-token`);
         const { token, type, title, mimeType } = response.data.data;
         
         setContentData({ type, title, mimeType });
-        
-        // Construct the serving URL
         const serveUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/content/serve/${token}`;
         setTokenUrl(serveUrl);
       } catch (err: any) {
@@ -57,6 +102,26 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
     
     fetchToken();
   }, [isOpen, contentId]);
+
+  // Zoom handlers
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleRotate = () => setRotation(prev => (prev + 90) % 360);
+  const handleReset = () => {
+    setZoom(1);
+    setRotation(0);
+  };
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      containerRef.current.requestFullscreen().catch(() => {
+        toast.error('Fullscreen not supported by browser.');
+      });
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -85,12 +150,18 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
         return <VideoPlayer src={tokenUrl} />;
       case 'IMAGE':
         return (
-          <div className="w-full h-full flex items-center justify-center p-4">
+          <div className="w-full h-full flex items-center justify-center p-4 overflow-hidden">
             <img 
               src={tokenUrl} 
               alt={contentData.title} 
-              className="max-w-full max-h-[60vh] object-contain shadow-premium rounded-lg" 
+              style={{
+                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                transition: 'transform 0.2s ease-out',
+                maxHeight: isFullscreen ? '80vh' : '55vh'
+              }}
+              className="max-w-full object-contain shadow-premium rounded-lg select-none pointer-events-none" 
               onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
             />
           </div>
         );
@@ -98,7 +169,9 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
         return (
           <iframe 
             src={`${tokenUrl}#toolbar=0`} 
-            className="w-full h-[60vh] border-none rounded-lg bg-white"
+            className={`w-full border-none rounded-lg bg-white transition-all duration-300 ${
+              isFullscreen ? 'h-[80vh]' : 'h-[60vh]'
+            }`}
             title={contentData.title}
           />
         );
@@ -108,21 +181,23 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
           return (
             <iframe 
               src={tokenUrl} 
-              className="w-full h-[60vh] border-none rounded-lg bg-white"
+              className={`w-full border-none rounded-lg bg-white transition-all duration-300 ${
+                isFullscreen ? 'h-[80vh]' : 'h-[60vh]'
+              }`}
               title={contentData.title}
             />
           );
         }
         
         return (
-          <div className="w-full min-h-[40vh] flex flex-col items-center justify-center p-8 bg-zinc-900 text-center text-white">
+          <div className="w-full min-h-[40vh] flex flex-col items-center justify-center p-8 bg-zinc-950 text-center text-white">
             <div className="p-6 bg-white/10 rounded-3xl border border-white/15 mb-4 shadow-premium backdrop-blur-md animate-bounce duration-[3000ms]">
               <FileText size={48} className="text-orange-400" />
             </div>
             <h4 className="text-lg font-bold text-white mb-2 truncate max-w-md">{contentData.title}</h4>
             <p className="text-xs text-white/60 mb-6 font-medium max-w-sm">
-              This document type ({contentData.mimeType}) cannot be previewed natively in the browser. 
-              Please download it to view it on your local application.
+              This document type ({contentData.mimeType}) cannot be previewed natively. 
+              Please download it to view it on your local machine.
             </p>
             <a 
               href={tokenUrl} 
@@ -140,17 +215,18 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
-      {user && <WatermarkOverlay identifier={user.email} />}
-      <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300 select-none">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={onClose} />
       <div className="relative bg-white w-full max-w-4xl rounded-[2.5rem] shadow-premium overflow-hidden animate-in zoom-in duration-300 border border-border">
+        
+        {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-border bg-surface/50">
           <div className="flex items-center gap-3">
             <span className="p-2 bg-primary/5 text-primary rounded-xl border border-primary/10">
               {contentData?.type === 'VIDEO' ? <PlayCircle size={20} className="text-blue-500" /> : <FileText size={20} className="text-orange-500" />}
             </span>
             <div>
-              <h3 className="text-xl font-black text-text-primary tracking-tight leading-none">
+              <h3 className="text-xl font-black text-text-primary tracking-tight leading-none truncate max-w-[400px]">
                 {contentData ? `${contentData.title} (Preview)` : 'File Preview'}
               </h3>
               <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest mt-1">
@@ -165,9 +241,90 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
             <X size={24} />
           </button>
         </div>
+
         <div className="p-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          <div className="bg-black rounded-3xl overflow-hidden flex items-center justify-center min-h-[40vh] relative border border-border">
-            {renderContent()}
+          
+          {/* File display container */}
+          <div 
+            ref={containerRef}
+            className={`bg-zinc-950 rounded-3xl overflow-hidden flex flex-col items-center justify-center relative border border-border/10 select-none ${
+              isFullscreen ? 'w-full h-full p-4' : 'min-h-[45vh]'
+            }`}
+          >
+            {/* Watermark overlay embedded directly inside the fullscreen component */}
+            {user && <WatermarkOverlay identifier={user.email} />}
+
+            {/* Custom Toolbar */}
+            {contentData && !isLoading && !error && contentData.type !== 'VIDEO' && (
+              <div className={`w-full flex items-center justify-between bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 text-white z-50 transition-all ${
+                isFullscreen ? 'mb-4 mt-2' : 'absolute top-4 left-4 right-4 max-w-[calc(100%-2rem)]'
+              }`}>
+                
+                {/* Security Lock indicator */}
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2.5 py-1.5 rounded-xl border border-emerald-500/30">
+                    <Lock size={10} className="text-emerald-400" />
+                    Secure Preview
+                  </span>
+                </div>
+
+                {/* Toolbar Controls */}
+                <div className="flex items-center gap-2">
+                  {contentData.type === 'IMAGE' && (
+                    <>
+                      <button 
+                        onClick={handleZoomOut} 
+                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
+                        title="Zoom Out"
+                      >
+                        <ZoomOut size={16} />
+                      </button>
+                      <span className="text-[10px] font-mono text-white/60 select-none px-1">
+                        {Math.round(zoom * 100)}%
+                      </span>
+                      <button 
+                        onClick={handleZoomIn} 
+                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
+                        title="Zoom In"
+                      >
+                        <ZoomIn size={16} />
+                      </button>
+                      <div className="h-4 w-px bg-white/10 mx-1" />
+                      <button 
+                        onClick={handleRotate} 
+                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
+                        title="Rotate"
+                      >
+                        <RotateCw size={16} />
+                      </button>
+                      <button 
+                        onClick={handleReset} 
+                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
+                        title="Reset Zoom & Rotation"
+                      >
+                        <RefreshCw size={16} />
+                      </button>
+                      <div className="h-4 w-px bg-white/10 mx-1" />
+                    </>
+                  )}
+
+                  <button 
+                    onClick={toggleFullscreen} 
+                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
+                    title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Content output */}
+            <div className={`w-full h-full flex items-center justify-center ${
+              !isFullscreen && contentData?.type !== 'VIDEO' ? 'pt-16 pb-4 px-4' : 'flex-1'
+            }`}>
+              {renderContent()}
+            </div>
           </div>
           
           {contentData && !isLoading && !error && (
@@ -178,7 +335,7 @@ export function ContentPreviewModal({ isOpen, onClose, contentId }: ContentPrevi
               <div>
                 <p className="font-bold">Protected Preview Mode Enabled</p>
                 <p className="mt-0.5 font-medium opacity-80">
-                  This {contentData.type.toLowerCase() === 'document' ? 'file' : contentData.type.toLowerCase()} preview is served securely. Direct downloading is restricted where possible, and a dynamic admin watermark is active.
+                  This preview is served securely. Direct downloading is disabled, and an active watermark is overlaid. Keyboard copy, save, and print actions are intercepted to protect intellectual property.
                 </p>
               </div>
             </div>

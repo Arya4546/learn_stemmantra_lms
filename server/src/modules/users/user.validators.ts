@@ -24,3 +24,17 @@ export const paginationQuerySchema = z.object({
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
+
+export const updateMeSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required').max(255).optional(),
+  currentPassword: z.string().min(1, 'Current password is required').optional(),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').optional(),
+}).refine(data => {
+  if (data.newPassword && !data.currentPassword) return false;
+  return true;
+}, {
+  message: 'Current password is required to change password',
+  path: ['currentPassword'],
+});
+
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;

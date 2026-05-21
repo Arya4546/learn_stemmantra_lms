@@ -29,3 +29,10 @@ export async function deleteStudent(req: Request, res: Response): Promise<void> 
   const student = await userService.deactivateStudent(String(req.params.id));
   sendSuccess(res, HttpStatus.OK, 'Student deactivated', student);
 }
+
+export async function updateMe(req: Request, res: Response): Promise<void> {
+  const userId = req.user!.userId;
+  const user = await userService.updateMe(userId, req.body);
+  sendSuccess(res, HttpStatus.OK, 'Profile updated successfully', user);
+}
+

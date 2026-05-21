@@ -1,8 +1,8 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/app-error';
-import { hashPassword } from '../../shared/utils/hash';
-import type { CreateUserInput, UpdateUserInput, PaginationQuery } from './user.validators';
+import { hashPassword, comparePassword } from '../../shared/utils/hash';
+import type { CreateUserInput, UpdateUserInput, PaginationQuery, UpdateMeInput } from './user.validators';
 
 const USER_SELECT = {
   id: true,
@@ -120,3 +120,34 @@ export async function deactivateStudent(userId: string) {
     select: USER_SELECT,
   });
 }
+
+export async function updateMe(userId: string, input: UpdateMeInput) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw AppError.notFound('User');
+  }
+
+  const updateData: any = {};
+
+  if (input.fullName) {
+    updateData.fullName = input.fullName;
+  }
+
+  if (input.newPassword && input.currentPassword) {
+    const isMatch = await comparePassword(input.currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw AppError.badRequest('Incorrect current password');
+    }
+    updateData.passwordHash = await hashPassword(input.newPassword);
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: USER_SELECT,
+  });
+}
+

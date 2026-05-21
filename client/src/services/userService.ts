@@ -12,7 +12,7 @@ export interface User {
 export const userService = {
   getAll: () => api.get('/users'),
   getMe: () => api.get('/users/me'),
-  updateProfile: (data: Partial<User>) => api.patch('/users/me', data),
+  updateProfile: (data: any) => api.patch('/users/me', data),
   updateUser: (id: string, data: Partial<User>) => api.patch(`/users/${id}`, data),
   createUser: (data: any) => api.post('/users', data),
 };

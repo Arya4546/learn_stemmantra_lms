@@ -20,6 +20,7 @@ import { Modal } from '../../components/ui/Modal';
 import { StudentForm } from './StudentForm';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { DropdownSelect } from '../../components/ui/DropdownSelect';
 
 export function AdminStudentList() {
   const [students, setStudents] = useState<User[]>([]);
@@ -212,17 +213,16 @@ export function AdminStudentList() {
           />
         </div>
         
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <select 
-            className="px-4 py-2.5 bg-white border border-border rounded-2xl text-sm font-bold text-text-secondary hover:bg-surface outline-none transition-all cursor-pointer"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-          >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active Students</option>
-            <option value="INACTIVE">Inactive Students</option>
-          </select>
-        </div>
+        <DropdownSelect
+          value={statusFilter}
+          onChange={(val) => setStatusFilter(val as any)}
+          options={[
+            { value: 'ALL', label: 'All Status' },
+            { value: 'ACTIVE', label: 'Active Students' },
+            { value: 'INACTIVE', label: 'Inactive Students' },
+          ]}
+          className="w-full md:w-auto"
+        />
       </div>
 
       {filteredStudents.length === 0 ? (

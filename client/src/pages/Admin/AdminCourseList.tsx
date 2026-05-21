@@ -23,6 +23,7 @@ import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CourseForm } from './CourseForm';
 import { CourseContentEditor } from './CourseContentEditor';
+import { DropdownSelect } from '../../components/ui/DropdownSelect';
 import { ContentPreviewModal } from '../../components/security/ContentPreviewModal';
 import toast from 'react-hot-toast';
 
@@ -191,17 +192,16 @@ export function AdminCourseList() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <select
-            className="px-4 py-2.5 bg-white border border-border rounded-2xl text-sm font-bold text-text-secondary hover:bg-surface outline-none transition-all cursor-pointer"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-          >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active Only</option>
-            <option value="INACTIVE">Inactive Only</option>
-          </select>
-        </div>
+        <DropdownSelect
+          value={statusFilter}
+          onChange={(val) => setStatusFilter(val as any)}
+          options={[
+            { value: 'ALL', label: 'All Status' },
+            { value: 'ACTIVE', label: 'Active Only' },
+            { value: 'INACTIVE', label: 'Inactive Only' },
+          ]}
+          className="w-full md:w-auto"
+        />
       </div>
 
       {filteredCourses.length === 0 ? (

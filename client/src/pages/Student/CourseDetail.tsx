@@ -137,13 +137,13 @@ export function CourseDetail() {
                           return { subtitle: 'Video Lecture', action: 'Watch Lecture', badgeBg: 'bg-blue-50 border-blue-100 text-blue-700' };
                         case 'PDF':
                         case 'DOCUMENT':
-                          return { subtitle: 'Reading Worksheet', action: 'Review document', badgeBg: 'bg-orange-50 border-orange-100 text-orange-700' };
+                          return { subtitle: 'Reading Worksheet', action: 'View Document', badgeBg: 'bg-orange-50 border-orange-100 text-orange-700' };
                         case 'IMAGE':
-                          return { subtitle: 'Concept Diagram', action: 'Inspect Diagram', badgeBg: 'bg-green-50 border-green-100 text-green-700' };
+                          return { subtitle: 'Concept Diagram', action: 'View Image', badgeBg: 'bg-green-50 border-green-100 text-green-700' };
                         case 'QUIZ':
                           return { subtitle: 'Practice Quiz Checkpoint', action: 'Begin Quiz', badgeBg: 'bg-indigo-50 border-indigo-100 text-indigo-700' };
                         case 'ASSESSMENT':
-                          return { subtitle: 'Secure Graded Assessment', action: 'Start Exam', badgeBg: 'bg-rose-50 border-rose-100 text-rose-700' };
+                          return { subtitle: 'Secure Graded Assessment', action: 'Start Assessment', badgeBg: 'bg-rose-50 border-rose-100 text-rose-700' };
                         default:
                           return { subtitle: 'Learning Resource', action: 'Open Lesson', badgeBg: 'bg-slate-50 border-slate-100 text-slate-700' };
                       }
@@ -157,7 +157,7 @@ export function CourseDetail() {
                         to={`/student/content/${content.id}`}
                         className="flex items-center justify-between px-8 py-5 hover:bg-primary/5 transition-all group"
                       >
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-5 font-outfit">
                           <div className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center shadow-sm group-hover:border-primary group-hover:bg-white group-hover:shadow-premium transition-all">
                             {getIcon(content.type)}
                           </div>
@@ -175,7 +175,7 @@ export function CourseDetail() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                        <div className="flex items-center gap-2 opacity-60 lg:opacity-0 lg:group-hover:opacity-100 group-hover:opacity-100 transition-all transform lg:translate-x-2 group-hover:translate-x-0 shrink-0">
                           <span className="text-xs font-black text-primary uppercase tracking-widest">
                             {action}
                           </span>

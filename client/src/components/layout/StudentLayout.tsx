@@ -6,13 +6,16 @@ import {
   Bell, 
   ShieldCheck,
   Menu,
+  ArrowLeftRight
 } from 'lucide-react';
 import { useState } from 'react';
 import { ProfileDropdown } from './ProfileDropdown';
+import { useAuth } from '../../context/AuthContext';
 
 export function StudentLayout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/student', icon: LayoutDashboard },
@@ -41,8 +44,13 @@ export function StudentLayout() {
 
         {/* Student Menu */}
         <nav className="flex-1 p-5 space-y-1.5 overflow-y-auto custom-scrollbar mt-4">
-          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-3 mb-4 select-none">
-            Student Portal
+          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-3 mb-4 select-none flex items-center justify-between">
+            <span>Student Portal</span>
+            {user?.role === 'ADMIN' && (
+              <span className="bg-primary/20 text-primary border border-primary/20 px-2 py-0.5 rounded text-[8px] font-black animate-pulse">
+                DEMO MODE
+              </span>
+            )}
           </div>
           {navigation.map((item) => {
             const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href) && item.href !== '/student');
@@ -62,6 +70,19 @@ export function StudentLayout() {
             );
           })}
         </nav>
+
+        {/* Back to Admin Section */}
+        {user?.role === 'ADMIN' && (
+          <div className="p-5 border-t border-slate-800/50 bg-brandDark/30">
+            <Link
+              to="/admin/courses"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-primary to-orange-600 hover:from-primary-hover hover:to-orange-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 hover:-translate-y-0.5"
+            >
+              <ArrowLeftRight size={14} />
+              Exit Demo View
+            </Link>
+          </div>
+        )}
 
       </aside>
 

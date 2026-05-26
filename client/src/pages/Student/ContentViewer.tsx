@@ -6,8 +6,28 @@ import { useAuth } from '../../context/AuthContext';
 import { WatermarkOverlay } from '../../components/security/WatermarkOverlay';
 import { QuizViewer } from '../../components/student/QuizViewer';
 import { AssessmentViewer } from '../../components/student/AssessmentViewer';
-import { FileText, Lock, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Minimize2, ChevronLeft } from 'lucide-react';
+import { FileText, Lock, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+function countPdfPages(text: string): number {
+  const pagesMatches = [...text.matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/g)];
+  if (pagesMatches.length > 0) {
+    return parseInt(pagesMatches[pagesMatches.length - 1][1], 10);
+  }
+
+  const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)];
+  if (countMatches.length > 0) {
+    const counts = countMatches.map(m => parseInt(m[1], 10));
+    return Math.max(...counts);
+  }
+
+  const pageMatches = text.match(/\/Type\s*\/Page\b/g);
+  if (pageMatches) {
+    return pageMatches.length;
+  }
+
+  return 1;
+}
 
 export function ContentViewer() {
   const { contentId } = useParams<{ contentId: string }>();
@@ -24,6 +44,82 @@ export function ContentViewer() {
   const [rotation, setRotation] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const viewerContainerRef = useRef<HTMLDivElement>(null);
+
+  // PDF controls
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
+  const [pageInput, setPageInput] = useState('1');
+  const [localPdfUrl, setLocalPdfUrl] = useState<string | null>(null);
+
+  // Load PDF Blob to extract total page count and create a local Object URL
+  useEffect(() => {
+    if (!tokenUrl || contentData?.type !== 'PDF') return;
+
+    let active = true;
+    const fetchAndParsePdf = async () => {
+      try {
+        const response = await fetch(tokenUrl);
+        if (!response.ok) throw new Error('Failed to fetch PDF resource');
+        const blob = await response.blob();
+        
+        if (!active) return;
+
+        const text = await blob.text();
+        const pages = countPdfPages(text);
+        setTotalPages(pages);
+
+        const localUrl = URL.createObjectURL(blob);
+        setLocalPdfUrl(localUrl);
+      } catch (err) {
+        console.error('Error parsing PDF page count:', err);
+      }
+    };
+
+    fetchAndParsePdf();
+
+    return () => {
+      active = false;
+    };
+  }, [tokenUrl, contentData]);
+
+  // Clean up Object URL
+  useEffect(() => {
+    return () => {
+      if (localPdfUrl) {
+        URL.revokeObjectURL(localPdfUrl);
+      }
+    };
+  }, [localPdfUrl]);
+
+  // Keep input field synced to page changes
+  useEffect(() => {
+    setPageInput(currentPage.toString());
+  }, [currentPage]);
+
+  const handlePrevPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => {
+      if (totalPages && prev >= totalPages) return prev;
+      return prev + 1;
+    });
+  };
+
+  const handleGoToPage = () => {
+    const pageNum = parseInt(pageInput, 10);
+    if (!isNaN(pageNum) && pageNum >= 1) {
+      if (totalPages && pageNum > totalPages) {
+        setCurrentPage(totalPages);
+        setPageInput(totalPages.toString());
+      } else {
+        setCurrentPage(pageNum);
+      }
+    } else {
+      setPageInput(currentPage.toString());
+    }
+  };
 
   // Esc key closure support
   useEffect(() => {
@@ -222,7 +318,7 @@ export function ContentViewer() {
       case 'PDF':
         return (
           <iframe 
-            src={`${tokenUrl}#toolbar=0`} 
+            src={`${localPdfUrl || tokenUrl}#toolbar=0&page=${currentPage}`} 
             className={`w-full border-none rounded-lg bg-white transition-all duration-300 ${
               isFullscreen ? 'h-[80vh]' : 'h-[60vh]'
             }`}
@@ -310,8 +406,57 @@ export function ContentViewer() {
                 </span>
               </div>
 
-              {/* Toolbar zoom/rotate actions */}
+              {/* Toolbar zoom/rotate/page actions */}
               <div className="flex items-center gap-2">
+                {contentData.type === 'PDF' && (
+                  <div className="flex items-center gap-3 mr-2 border-r border-white/10 pr-3">
+                    <span className="text-[10px] sm:text-xs font-bold text-white/95 select-none font-outfit">
+                      Page: <span className="font-extrabold text-primary">{currentPage}</span> of {totalPages || '?'}
+                    </span>
+                    
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max={totalPages || undefined}
+                        value={pageInput}
+                        onChange={(e) => setPageInput(e.target.value)}
+                        placeholder="Page"
+                        className="w-12 bg-white/15 text-white text-xs font-bold py-1 px-1.5 text-center rounded-xl border border-white/10 outline-none focus:ring-1 focus:ring-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleGoToPage();
+                        }}
+                      />
+                      
+                      <button
+                        onClick={handleGoToPage}
+                        className="px-3 py-1 bg-primary hover:bg-primary-hover text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 shrink-0"
+                      >
+                        Go
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-0.5">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage <= 1}
+                        className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                        title="Previous Page"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={totalPages ? currentPage >= totalPages : false}
+                        className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                        title="Next Page"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {contentData.type === 'IMAGE' && (
                   <>
                     <button 

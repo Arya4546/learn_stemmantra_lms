@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { courseService, Course } from '../../services/courseService';
 import {
   Plus,
@@ -450,12 +451,12 @@ export function AdminCourseList() {
                                   Exam
                                 </span>
                               ) : (
-                                <button
-                                  onClick={() => setPreviewContentId(item.id)}
-                                  className="px-3 py-1 bg-primary text-white text-[10px] font-black rounded-lg hover:bg-primary-hover transition-all shadow-sm"
+                                <Link
+                                  to={`/student/content/${item.id}`}
+                                  className="px-3 py-1 bg-primary text-white text-[10px] font-black rounded-lg hover:bg-primary-hover transition-all shadow-sm text-center"
                                 >
-                                  Preview
-                                </button>
+                                  View Item
+                                </Link>
                               )}
                             </div>
                           ))
@@ -467,12 +468,21 @@ export function AdminCourseList() {
               )}
             </div>
 
-            <button
-              onClick={() => setIsPreviewOpen(false)}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-black hover:bg-primary-hover transition-all shadow-lg shadow-primary/20"
-            >
-              Close Preview
-            </button>
+            <div className="flex gap-4">
+              <Link
+                to={`/student/courses/${viewingCourse.id}`}
+                className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-center hover:bg-primary-hover transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+              >
+                <Eye size={18} />
+                Open Student Demo View
+              </Link>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="flex-1 py-4 bg-surface text-text-secondary border border-border rounded-2xl font-black hover:bg-surface-hover transition-all"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         )}
       </Modal>

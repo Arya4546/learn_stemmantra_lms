@@ -11,7 +11,15 @@ import { ContentViewer } from './pages/Student/ContentViewer';
 import './index.css';
 
 // A simple protected route wrapper
-function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'ADMIN' | 'STUDENT' }) {
+function ProtectedRoute({ 
+  children, 
+  requiredRole,
+  allowedRoles
+}: { 
+  children: React.ReactNode; 
+  requiredRole?: 'ADMIN' | 'STUDENT';
+  allowedRoles?: ('ADMIN' | 'STUDENT')[];
+}) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -22,7 +30,11 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole) {
+  if (allowedRoles) {
+    if (!allowedRoles.includes(user.role)) {
+      return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/student'} replace />;
+    }
+  } else if (requiredRole && user.role !== requiredRole) {
     return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/student'} replace />;
   }
 
@@ -65,7 +77,7 @@ function App() {
           <Route 
             path="/student" 
             element={
-              <ProtectedRoute requiredRole="STUDENT">
+              <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN']}>
                 <StudentLayout />
               </ProtectedRoute>
             }

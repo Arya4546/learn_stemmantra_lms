@@ -17,7 +17,7 @@ router.get(
 
 router.get(
   '/student',
-  authorize(Role.STUDENT),
+  authorize(Role.STUDENT, Role.ADMIN),
   asyncHandler(dashboardController.getStudentDashboard)
 );
 

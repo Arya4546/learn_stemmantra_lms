@@ -76,6 +76,24 @@ export async function listStudentCourses(userId: string) {
     throw AppError.notFound('User');
   }
 
+  if (user.role === Role.ADMIN) {
+    const courses = await prisma.course.findMany({
+      where: { isActive: true, isPublished: true },
+      include: {
+        _count: { select: { sections: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return courses.map(course => ({
+      id: `admin-demo-${course.id}`,
+      userId: user.id,
+      courseId: course.id,
+      enrolledAt: new Date(),
+      course
+    }));
+  }
+
   return prisma.enrollment.findMany({
     where: { userId },
     include: {

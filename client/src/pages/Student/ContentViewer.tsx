@@ -9,24 +9,34 @@ import { AssessmentViewer } from '../../components/student/AssessmentViewer';
 import { FileText, Lock, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-function countPdfPages(text: string): number {
-  const pagesMatches = [...text.matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/g)];
-  if (pagesMatches.length > 0) {
-    return parseInt(pagesMatches[pagesMatches.length - 1][1], 10);
+function countPdfPages(buffer: ArrayBuffer): number {
+  // Convert ArrayBuffer to a latin1 string (byte-preserving) for regex scanning
+  const bytes = new Uint8Array(buffer);
+  let str = '';
+  // Only scan the last 20KB of the file (the cross-ref/trailer area where /Count lives)
+  const startOffset = Math.max(0, bytes.length - 20480);
+  for (let i = startOffset; i < bytes.length; i++) {
+    str += String.fromCharCode(bytes[i]);
   }
 
-  const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)];
+  // Look for /Count N in Pages objects (most reliable)
+  const countMatches = [...str.matchAll(/\/Count\s+(\d+)/g)];
   if (countMatches.length > 0) {
     const counts = countMatches.map(m => parseInt(m[1], 10));
     return Math.max(...counts);
   }
 
-  const pageMatches = text.match(/\/Type\s*\/Page\b/g);
+  // Fallback: scan entire file for /Type /Page (not /Pages) markers
+  let fullStr = '';
+  for (let i = 0; i < bytes.length; i++) {
+    fullStr += String.fromCharCode(bytes[i]);
+  }
+  const pageMatches = fullStr.match(/\/Type\s*\/Page\b(?!s)/g);
   if (pageMatches) {
     return pageMatches.length;
   }
 
-  return 1;
+  return 0; // Unknown
 }
 
 export function ContentViewer() {
@@ -50,46 +60,64 @@ export function ContentViewer() {
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [pageInput, setPageInput] = useState('1');
   const [localPdfUrl, setLocalPdfUrl] = useState<string | null>(null);
+  const pdfBlobRef = useRef<string | null>(null);
 
-  // Load PDF Blob to extract total page count and create a local Object URL
+  // Load PDF Blob: request a SECOND access token, fetch the blob, count pages, create Object URL
   useEffect(() => {
-    if (!tokenUrl || contentData?.type !== 'PDF') return;
+    if (!contentData || contentData.type !== 'PDF' || !contentId) return;
 
     let active = true;
-    const fetchAndParsePdf = async () => {
+    const fetchPdfBlob = async () => {
       try {
-        const response = await fetch(tokenUrl);
-        if (!response.ok) throw new Error('Failed to fetch PDF resource');
+        // Request a dedicated second access token for blob fetching
+        const tokenRes = await api.post(`/content/${contentId}/access-token`);
+        const { token } = tokenRes.data.data;
+        const blobUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/content/serve/${token}`;
+
+        const response = await fetch(blobUrl, {
+          headers: { 'Accept': 'application/pdf' }
+        });
+        if (!response.ok) throw new Error('Failed to fetch PDF');
         const blob = await response.blob();
-        
+
         if (!active) return;
 
-        const text = await blob.text();
-        const pages = countPdfPages(text);
-        setTotalPages(pages);
+        // Count pages from raw binary
+        const buffer = await blob.arrayBuffer();
+        const pages = countPdfPages(buffer);
+        if (pages > 0) {
+          setTotalPages(pages);
+        }
 
-        const localUrl = URL.createObjectURL(blob);
-        setLocalPdfUrl(localUrl);
+        // Create a stable Object URL for the iframe
+        const objectUrl = URL.createObjectURL(blob);
+        pdfBlobRef.current = objectUrl;
+        setLocalPdfUrl(objectUrl);
       } catch (err) {
-        console.error('Error parsing PDF page count:', err);
+        console.error('PDF blob fetch error:', err);
+        // Fallback: use the original token URL if blob fetch fails
+        if (active && tokenUrl) {
+          setLocalPdfUrl(tokenUrl);
+        }
       }
     };
 
-    fetchAndParsePdf();
+    fetchPdfBlob();
 
     return () => {
       active = false;
     };
-  }, [tokenUrl, contentData]);
+  }, [contentData, contentId]);
 
-  // Clean up Object URL
+  // Clean up Object URL on unmount
   useEffect(() => {
     return () => {
-      if (localPdfUrl) {
-        URL.revokeObjectURL(localPdfUrl);
+      if (pdfBlobRef.current) {
+        URL.revokeObjectURL(pdfBlobRef.current);
+        pdfBlobRef.current = null;
       }
     };
-  }, [localPdfUrl]);
+  }, []);
 
   // Keep input field synced to page changes
   useEffect(() => {
@@ -316,9 +344,18 @@ export function ContentViewer() {
           </div>
         );
       case 'PDF':
+        if (!localPdfUrl) {
+          return (
+            <div className="w-full h-[60vh] flex flex-col items-center justify-center bg-white rounded-lg">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-text-secondary font-bold mt-4 animate-pulse">Loading secure document...</p>
+            </div>
+          );
+        }
         return (
           <iframe 
-            src={`${localPdfUrl || tokenUrl}#toolbar=0&page=${currentPage}`} 
+            key={`${currentPage}`}
+            src={`${localPdfUrl}#toolbar=0&page=${currentPage}`} 
             className={`w-full border-none rounded-lg bg-white transition-all duration-300 ${
               isFullscreen ? 'h-[80vh]' : 'h-[60vh]'
             }`}
@@ -326,8 +363,12 @@ export function ContentViewer() {
           />
         );
       case 'DOCUMENT': {
-        const isText = contentData.mimeType === 'text/plain' || contentData.mimeType === 'text/csv';
-        if (isText) {
+        const isPreviewableDoc = 
+          contentData.mimeType === 'text/plain' || 
+          contentData.mimeType === 'text/csv' || 
+          contentData.mimeType === 'text/html' || 
+          contentData.mimeType === 'application/xhtml+xml';
+        if (isPreviewableDoc) {
           return (
             <iframe 
               src={tokenUrl} 

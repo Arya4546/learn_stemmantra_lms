@@ -43,7 +43,7 @@ export function StudentLayout() {
         </div>
 
         {/* Student Menu */}
-        <nav className="flex-1 p-5 space-y-1.5 overflow-y-auto custom-scrollbar mt-4">
+        <nav className="flex-1 p-5 space-y-1.5 mt-4">
           <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-3 mb-4 select-none flex items-center justify-between">
             <span>Student Portal</span>
             {user?.role === 'ADMIN' && (

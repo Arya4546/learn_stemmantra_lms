@@ -344,7 +344,7 @@ export function CourseContentEditor({ courseId, onClose }: CourseContentEditorPr
                 <div className="pt-2 flex flex-col sm:flex-row gap-2">
                   <label className="flex-1 flex items-center justify-center gap-2 p-3 bg-white border border-dashed border-border rounded-xl text-xs font-bold text-text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer">
                     <Upload size={14} />
-                    <span>Upload Video or PDF</span>
+                    <span>Upload Document / File</span>
                     <input 
                       type="file" 
                       className="hidden" 

@@ -49,10 +49,81 @@
     border: 1px solid rgba(226, 232, 240, 0.8);
   }
 
-  /* Soft glowing gradient */
-  .gradient-bg {
-    background: radial-gradient(circle at 10% 20%, rgba(255, 237, 213, 0.3) 0%, rgba(255, 255, 255, 0) 90%);
+  /* Grid dot background pattern for high-fidelity look */
+  .grid-pattern {
+    background-size: 24px 24px;
+    background-image: radial-gradient(circle, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
   }
+
+  /* Deep dark panel glow */
+  .glow-dark-panel {
+    box-shadow: 0 0 40px -10px rgba(234, 88, 12, 0.08), 0 0 20px -5px rgba(59, 130, 246, 0.05);
+  }
+
+  /* Glowing orange active tab shadow */
+  .shadow-glow-orange {
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.15), 0 4px 6px -1px rgba(234, 88, 12, 0.05);
+  }
+
+  /* Pulse glowing effect for sensor simulation */
+  @keyframes sensorPulse {
+    0%, 100% {
+      opacity: 0.2;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
+
+  .animate-sensor-pulse {
+    animation: sensorPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* OpenCV Scanning Line Keyframes */
+  @keyframes scanLine {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translateY(68px);
+      opacity: 1;
+    }
+  }
+
+  .animate-scan-line {
+    animation: scanLine 2.5s ease-in-out infinite;
+  }
+
+  /* Pulsing color glow */
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 0.6;
+      filter: drop-shadow(0 0 2px currentColor);
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 1.8s ease-in-out infinite;
+  }
+
+  /* Premium Stage Card Transitions */
+  .stage-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .stage-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(234, 88, 12, 0.25);
+    border-color: rgba(234, 88, 12, 0.3);
+  }
+  
 }
 
 @media print {

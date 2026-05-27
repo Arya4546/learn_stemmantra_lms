@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SecurityEnforcer } from './components/security/SecurityEnforcer';
+import { Landing } from './pages/Landing/Landing';
 import { Login } from './pages/Login/Login';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { StudentLayout } from './components/layout/StudentLayout';
@@ -49,6 +50,14 @@ import { StudentDashboard } from './pages/Student/StudentDashboard';
 
 import { Toaster } from 'react-hot-toast';
 
+// A simple component to redirect to external URLs
+function ExternalRedirect({ url }: { url: string }) {
+  React.useEffect(() => {
+    window.location.replace(url);
+  }, [url]);
+  return <div className="min-h-screen flex items-center justify-center text-primary font-medium">Redirecting to stemmantra.com...</div>;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -56,8 +65,18 @@ function App() {
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { borderRadius: '1rem', background: '#333', color: '#fff', fontSize: '14px', fontWeight: 'bold' } }} />
       <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/about" element={<ExternalRedirect url="https://stemmantra.com/about" />} />
+          <Route path="/contact" element={<ExternalRedirect url="https://stemmantra.com/contact" />} />
+          <Route path="/programs" element={<ExternalRedirect url="https://stemmantra.com/programs" />} />
+          <Route path="/career" element={<ExternalRedirect url="https://stemmantra.com/career" />} />
+          <Route path="/gallery" element={<ExternalRedirect url="https://stemmantra.com/gallery" />} />
+          <Route path="/clients" element={<ExternalRedirect url="https://stemmantra.com/clients" />} />
+          <Route path="/privacy-policy" element={<ExternalRedirect url="https://stemmantra.com/privacy-policy" />} />
+          <Route path="/terms-of-service" element={<ExternalRedirect url="https://stemmantra.com/terms-of-service" />} />
+          <Route path="/refund-policy" element={<ExternalRedirect url="https://stemmantra.com/refund-policy" />} />
+          
           
           {/* Admin Routes */}
           <Route 

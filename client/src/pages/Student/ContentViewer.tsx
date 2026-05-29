@@ -6,36 +6,33 @@ import { useAuth } from '../../context/AuthContext';
 import { WatermarkOverlay } from '../../components/security/WatermarkOverlay';
 import { QuizViewer } from '../../components/student/QuizViewer';
 import { AssessmentViewer } from '../../components/student/AssessmentViewer';
-import { FileText, Lock, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Lock, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Minimize2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function countPdfPages(buffer: ArrayBuffer): number {
-  // Convert ArrayBuffer to a latin1 string (byte-preserving) for regex scanning
-  const bytes = new Uint8Array(buffer);
-  let str = '';
-  // Only scan the last 20KB of the file (the cross-ref/trailer area where /Count lives)
-  const startOffset = Math.max(0, bytes.length - 20480);
-  for (let i = startOffset; i < bytes.length; i++) {
-    str += String.fromCharCode(bytes[i]);
-  }
+  try {
+    const bytes = new Uint8Array(buffer);
+    
+    // Using TextDecoder ('latin1' is byte-preserving, decoding 0-255 range exactly) is extremely fast.
+    // It can decode a 50MB array buffer in a fraction of a second without crashing.
+    const decoder = new TextDecoder('latin1');
+    const str = decoder.decode(bytes);
 
-  // Look for /Count N in Pages objects (most reliable)
-  const countMatches = [...str.matchAll(/\/Count\s+(\d+)/g)];
-  if (countMatches.length > 0) {
-    const counts = countMatches.map(m => parseInt(m[1], 10));
-    return Math.max(...counts);
-  }
+    // Look for /Count N in Pages objects (most reliable)
+    const countMatches = [...str.matchAll(/\/Count\s+(\d+)/g)];
+    if (countMatches.length > 0) {
+      const counts = countMatches.map(m => parseInt(m[1], 10));
+      return Math.max(...counts);
+    }
 
-  // Fallback: scan entire file for /Type /Page (not /Pages) markers
-  let fullStr = '';
-  for (let i = 0; i < bytes.length; i++) {
-    fullStr += String.fromCharCode(bytes[i]);
+    // Fallback: scan entire file for /Type /Page (not /Pages) markers
+    const pageMatches = str.match(/\/Type\s*\/Page\b(?!s)/g);
+    if (pageMatches) {
+      return pageMatches.length;
+    }
+  } catch (err) {
+    console.error('Error counting PDF pages:', err);
   }
-  const pageMatches = fullStr.match(/\/Type\s*\/Page\b(?!s)/g);
-  if (pageMatches) {
-    return pageMatches.length;
-  }
-
   return 0; // Unknown
 }
 
@@ -356,6 +353,11 @@ export function ContentViewer() {
           <iframe 
             key={`${currentPage}`}
             src={`${localPdfUrl}#toolbar=0&page=${currentPage}`} 
+            style={{
+              transform: `rotate(${rotation}deg) scale(${rotation % 180 === 0 ? 1 : 0.65})`,
+              transformOrigin: 'center center',
+              transition: 'transform 0.2s ease-out',
+            }}
             className={`w-full border-none rounded-lg bg-white transition-all duration-300 ${
               isFullscreen ? 'h-[80vh]' : 'h-[60vh]'
             }`}
@@ -439,9 +441,17 @@ export function ContentViewer() {
             <div className={`w-full flex items-center justify-between bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 text-white z-50 transition-all ${
               isFullscreen ? 'mb-4 mt-2' : 'absolute top-4 left-4 right-4 max-w-[calc(100%-2rem)]'
             }`}>
-              {/* Secure tag */}
+              {/* Left actions: Cancel button & Secure tag */}
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2.5 py-1.5 rounded-xl border border-emerald-500/30">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer"
+                  title="Cancel and Exit"
+                >
+                  <X size={12} />
+                  Cancel
+                </button>
+                <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2.5 py-1.5 rounded-xl border border-emerald-500/30">
                   <Lock size={10} className="text-emerald-400" />
                   Secure View Mode
                 </span>
@@ -553,6 +563,30 @@ export function ContentViewer() {
           }`}>
             {renderContent()}
           </div>
+
+          {/* Floating Rotate controls at the right/down side (bottom-right) */}
+          {contentData && (contentData.type === 'PDF' || contentData.type === 'IMAGE') && (
+            <div className="absolute bottom-4 right-4 flex gap-1.5 bg-black/75 backdrop-blur-md border border-white/15 rounded-2xl p-1.5 text-white z-50 shadow-premium">
+              <button
+                onClick={handleRotate}
+                className="flex items-center gap-1 px-3 py-2 hover:bg-white/10 rounded-xl transition-colors text-xs font-bold text-white/90 hover:text-white"
+                title="Rotate Page Clockwise"
+              >
+                <RotateCw size={14} className="text-primary animate-pulse" />
+                <span>Rotate</span>
+              </button>
+              {rotation !== 0 && (
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-1 px-3 py-2 hover:bg-white/10 rounded-xl transition-all text-xs font-bold text-white/60 hover:text-white"
+                  title="Reset Orientation"
+                >
+                  <RefreshCw size={14} />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         
         {/* Secure Disclaimer banner */}

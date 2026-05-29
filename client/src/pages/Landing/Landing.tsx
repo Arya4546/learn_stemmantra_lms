@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LandingHeader } from '../../components/layout/LandingHeader';
+import { LandingFooter } from '../../components/layout/LandingFooter';
 import { 
   ShieldCheck, 
   ArrowRight, 
@@ -14,8 +16,6 @@ import {
   ChevronRight,
   Sparkles,
   Phone,
-  Mail,
-  MapPin,
   Play,
   Check,
   Code
@@ -191,10 +191,10 @@ export function Landing() {
   const programs: ProgramDetail[] = [
     {
       id: 'pre-tinkering',
-      name: 'Pre Tinkering Lab',
+      name: 'Pre-Tinkering Lab',
       badge: 'FOUNDATION',
       grades: 'Grades 3 to 5',
-      description: 'An introductory physical computing gateway designed to spark curiosity in young minds. Through interactive components, elementary mechanics, and basic electronics, students learn design thinking.',
+      description: 'Targeted at students in grades 3–5, this lab uses child-friendly tools to introduce technology through building blocks, puzzles, art, simple machines, and basic electronic concepts. Its curriculum emphasizes "learning with fun" to nurture natural curiosity.',
       features: [
         'Introduction to simple machines & structural design',
         'Basic electronics with safe, non-soldering physical boards',
@@ -212,10 +212,10 @@ export function Landing() {
     },
     {
       id: 'steamverse',
-      name: 'STEAMVERSE Lab',
+      name: 'STEMverse Lab',
       badge: 'FLAGSHIP PROGRAM',
-      grades: 'Grades 3 to 12',
-      description: 'Our core technology integration. Students work with 5+ microcontroller boards, 40+ modular sensors, 3D printing software, IoT cloud nodes, and drone dynamics, turning theoretical physics into actual projects.',
+      grades: 'Grades 6 to 12',
+      description: 'Combines cutting-edge technology, hands-on experimentation, and project-based learning. It focuses on equipping students with knowledge in STEM, robotics, and IoT (Internet of Things) to prepare them for a technology-driven future.',
       features: [
         'Microcontroller interfacing (Arduino, ESP32, and Raspberry Pi)',
         'Sensors & Actuators calibration (gases, distance, humidity)',
@@ -235,8 +235,8 @@ export function Landing() {
       id: 'ai-coding',
       name: 'AI & Coding Lab',
       badge: 'FUTURE SHIFT',
-      grades: 'Grades 5 to 12',
-      description: 'Focuses on building software engineering skills. Covers Python syntax logic, computer vision scripts, and basic Machine Learning algorithms to classify datasets and predict values.',
+      grades: 'Grades 6 to 12',
+      description: 'Focuses on equipping students with essential AI and programming skills through a blend of hardware and software activities. The program ranges from basic programming to advanced AI concepts and is supported by workshops, hackathons, and competitions.',
       features: [
         'Python programming essentials & loop structures',
         'Computer Vision using OpenCV libraries',
@@ -254,10 +254,10 @@ export function Landing() {
     },
     {
       id: 'innoverse',
-      name: 'INNOVERSE Lab',
+      name: 'Innoverse Lab',
       badge: 'CUSTOM CURRICULUM',
       grades: 'Grades 3 to 12',
-      description: 'A tailored, highly integrated school technology solution. It creates personalized learning pathways for each student, mapping standard curriculum concepts directly to hands-on experiments.',
+      description: "Designed as a one-stop solution for a school's technological needs, offering hands-on activities for students in grades 3–12. It features a progressive curriculum that caters to diverse skill levels to encourage exploration and growth.",
       features: [
         'Aligned directly with CBSE, ICSE, and International boards',
         'Integrated student progress analytics for educators',
@@ -278,7 +278,7 @@ export function Landing() {
       name: 'Atal Tinkering Lab (ATL)',
       badge: 'GOVT COMPLIANT',
       grades: 'Grades 6 to 12',
-      description: 'Complete turn-key execution from procurement of NITI Aayog mandated equipment to ongoing mentor mapping, competition coaching, and national marathon submission guidance.',
+      description: 'An initiative by the Government of India\'s Atal Innovation Mission, providing workspaces equipped with 3D printers, robotics kits, IoT devices, and electronics. STEMmantra partners with schools to implement ATLs, offering turnkey setup, equipment, curriculum integration, and educator training.',
       features: [
         'Compliant equipment provisioning based on NITI Aayog guidelines',
         'Hands-on trainer mapping & student-driven hackathons',
@@ -300,61 +300,7 @@ export function Landing() {
     <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-[#0F172A] selection:bg-primary selection:text-white grid-pattern">
       
       {/* 1. Header Section - Floating Premium Glass Navbar */}
-      <div className="max-w-[90%] mx-auto pt-6">
-        <header className="w-full bg-white/75 backdrop-blur-xl border border-slate-200/80 shadow-premium rounded-2xl px-6 py-4 flex items-center justify-between transition-all duration-300">
-          <div className="flex items-center gap-2">
-            <img 
-              src="/logo.png" 
-              alt="STEMmantra Logo" 
-              className="h-10 w-auto object-contain hover:scale-102 transition-transform"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-          </div>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 font-sans font-bold text-sm">
-            <a href="#" className="text-primary hover:text-primary-hover transition-colors">
-              LMS Home
-            </a>
-            <a 
-              href="https://stemmantra.com/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-text-secondary hover:text-primary transition-colors flex items-center gap-1 group"
-            >
-              Corporate Site <ExternalLink size={13} className="text-slate-400 group-hover:text-primary transition-colors" />
-            </a>
-            <a 
-              href="https://stemmantra.com/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-text-secondary hover:text-primary transition-colors flex items-center gap-1 group"
-            >
-              Labs & Programs <ExternalLink size={13} className="text-slate-400 group-hover:text-primary transition-colors" />
-            </a>
-            <a 
-              href="https://stemmantra.com/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-text-secondary hover:text-primary transition-colors flex items-center gap-1 group"
-            >
-              Contact Us <ExternalLink size={13} className="text-slate-400 group-hover:text-primary transition-colors" />
-            </a>
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/login')} 
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
-            >
-              Portal Login
-            </button>
-          </div>
-        </header>
-      </div>
+      <LandingHeader />
 
       {/* 2. Hero Section - Immersive Side-by-Side Wide Layout */}
       <section className="relative overflow-hidden pt-12 pb-24 lg:pt-16 lg:pb-28">
@@ -1270,94 +1216,7 @@ export function Landing() {
       </section>
 
       {/* 7. Footer Section - Noida coordinates */}
-      <footer className="bg-[#030712] border-t border-slate-950 text-slate-400 py-16">
-        <div className="max-w-[90%] mx-auto">
-          
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-12 border-b border-slate-900">
-            
-            <div className="md:col-span-5 flex flex-col gap-4 text-left">
-              <img 
-                src="/logo.png" 
-                alt="STEMmantra Logo" 
-                className="h-10 w-auto object-contain self-start"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-              <p className="text-sm leading-relaxed max-w-sm font-light text-slate-400">
-                India's leading provider of turn-key Robotics, Artificial Intelligence, Coding, and STEM Laboratory ecosystems for K-12 educational institutions.
-              </p>
-            </div>
-
-            <nav className="md:col-span-3 text-left">
-              <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4">Quick Redirects</h4>
-              <ul className="space-y-2.5 text-sm font-semibold">
-                <li>
-                  <a href="https://stemmantra.com/" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-1">
-                    STEMmantra Corporate <ExternalLink size={12} />
-                  </a>
-                </li>
-                <li>
-                  <a href="https://stemmantra.com/programs" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-1">
-                    About Programs <ExternalLink size={12} />
-                  </a>
-                </li>
-                <li>
-                  <a href="https://stemmantra.com/about" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-1">
-                    Innovation Labs <ExternalLink size={12} />
-                  </a>
-                </li>
-                <li>
-                  <a href="https://stemmantra.com/career" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-1">
-                    Career Opportunities <ExternalLink size={12} />
-                  </a>
-                </li>
-              </ul>
-            </nav>
-
-            <div className="md:col-span-4 text-left space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-widest">Noida Headquarters</h4>
-              
-              <div className="flex items-start gap-3 text-sm">
-                <MapPin size={18} className="text-primary shrink-0 mt-0.5" />
-                <span>
-                  C-104, 2nd Floor, Sector-10, Noida, <br />
-                  Uttar Pradesh – 201301
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm">
-                <Mail size={18} className="text-primary shrink-0" />
-                <a href="mailto:sales@stemmantra.com" className="hover:text-primary transition-colors">
-                  sales@stemmantra.com
-                </a>
-              </div>
-
-              <div className="flex flex-col gap-1 text-sm pl-7">
-                <div className="flex items-center gap-2">
-                  <Phone size={13} className="text-slate-500" />
-                  <span>Helpline: +91-6356631515</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone size={13} className="text-slate-500" />
-                  <span>Landline: 0120-3101774</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
-            <p>&copy; {new Date().getFullYear()} STEMmantra. All rights reserved.</p>
-            <div className="flex gap-6">
-              <a href="https://stemmantra.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="https://stemmantra.com/terms-of-service" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Terms of Service</a>
-              <a href="https://stemmantra.com/refund-policy" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Refund Policy</a>
-            </div>
-          </div>
-
-        </div>
-      </footer>
+      <LandingFooter />
 
     </div>
   );

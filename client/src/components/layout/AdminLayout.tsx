@@ -5,7 +5,6 @@ import {
   BookOpen, 
   Search, 
   Bell, 
-  ShieldCheck,
   Menu,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -30,15 +29,16 @@ export function AdminLayout() {
       }`}>
         {/* Brand Header */}
         <div className="h-20 flex items-center px-6 border-b border-slate-800/40 bg-brandDark/50 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-              <ShieldCheck size={20} className="text-white" />
-            </div>
-            <div>
-              <span className="block text-base font-black text-white tracking-tight font-outfit">StemMantra</span>
-              <span className="block text-[8px] font-black uppercase tracking-widest text-primary">Secure LMS</span>
-            </div>
-          </div>
+          <Link to="/admin" className="flex items-center">
+            <img 
+              src="/logo.png" 
+              alt="STEMmantra Logo" 
+              className="h-10 w-auto object-contain hover:scale-102 transition-transform"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          </Link>
         </div>
 
         {/* Navigation Items */}

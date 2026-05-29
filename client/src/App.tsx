@@ -4,6 +4,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SecurityEnforcer } from './components/security/SecurityEnforcer';
 import { Landing } from './pages/Landing/Landing';
 import { Login } from './pages/Login/Login';
+import { About } from './pages/Landing/About';
+import { Programs } from './pages/Landing/Programs';
+import { Contact } from './pages/Landing/Contact';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { StudentLayout } from './components/layout/StudentLayout';
 import { CourseList } from './pages/Student/CourseList';
@@ -67,9 +70,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/about" element={<ExternalRedirect url="https://stemmantra.com/about" />} />
-          <Route path="/contact" element={<ExternalRedirect url="https://stemmantra.com/contact" />} />
-          <Route path="/programs" element={<ExternalRedirect url="https://stemmantra.com/programs" />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/programs" element={<Programs />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/career" element={<ExternalRedirect url="https://stemmantra.com/career" />} />
           <Route path="/gallery" element={<ExternalRedirect url="https://stemmantra.com/gallery" />} />
           <Route path="/clients" element={<ExternalRedirect url="https://stemmantra.com/clients" />} />
